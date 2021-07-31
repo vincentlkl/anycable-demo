@@ -1,24 +1,46 @@
-# README
+<!-- to start all servers on local -->
+foreman start -f Procfile.dev
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+1. bundle exec rails g anycable:setup
+2. setup config/cable
 
-Things you may want to cover:
 
-* Ruby version
+<!-- generating a channel to broadcast -->
+rails g channel message
 
-* System dependencies
 
-* Configuration
+<!-- heroku setup -->
+<!-- heroku requires extra pipeline -->
+heroku create ws-demo-app
+heroku pipelines:add ws-demo-app-pipeline -a ws-demo-app
+heroku create ws-demo-app-anycable --remote anycable
+heroku pipelines:add ws-demo-pipeline -a ws-demo-app-anycable
 
-* Database creation
 
-* Database initialization
+heroku addons:create heroku-postgresql
+heroku addons:create heroku-redis
 
-* How to run the test suite
+heroku buildpacks:add heroku/ruby -a ws-demo-app-anycable
+# get all add-ons from main app
+heroku addons -a ws-demo-app
 
-* Services (job queues, cache servers, search engines, etc.)
+# share the db and redis
+heroku addons:attach postgresql-aerodynamic-23089 -a ws-demo-app-anycable
+heroku addons:attach redis-rigid-76092 -a ws-demo-app-anycable
 
-* Deployment instructions
+# configure the environment variable for anycable heroku
+heroku config:set ANYCABLE_DEPLOYMENT=true -a ws-demo-app-anycable
+heroku config:set ANYCABLE_HOST=0.0.0.0 -a ws-demo-app-anycable
+heroku config:set RAILS_ENV=production -a ws-demo-app-anycable
 
-* ...
+# set the main app to connect to anycable heroku
+heroku config:set CABLE_URL="wss://ws-demo-app-anycable.herokuapp.com/cable" -a ws-demo-app
+
+
+
+heroku buildpacks:add https://github.com/anycable/heroku-anycable-go -a ws-demo-app-anycable
+
+
+
+
+heroku repo:rebuild -a ws-demo-app
